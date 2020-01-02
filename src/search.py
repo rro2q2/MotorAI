@@ -132,7 +132,7 @@ def manhattanDistance(grid, x, y):
     for i in range(len(grid)):
         for j in range(len(grid)):
             if (i, j) == (x, y):
-                value = abs(main.goal_coord[0][0] - i) + abs(main.goal_coord[0][1] - j)
+                value = abs(main.goal_coord["Mason"][0] - i) + abs(main.goal_coord["Mason"][1] - j)
     return value
 
 # Finds the path from start to goal node

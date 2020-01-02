@@ -3,14 +3,24 @@ import numpy as np
 import time
 from skimage.feature import hog
 from sklearn.externals import joblib
+import random
+import pygame
+import main
 
 scaleFactor = 1.2
 inverse = 1.0/scaleFactor
 winStride = (8, 8)
 winSize = (128, 64)
 
+def randomize_image():
+    return random.randint(1, 10)
+
+rand = randomize_image()
+rand = str(rand)
+print("This is rand", rand)
+
 clf = joblib.load("pedestrian.pkl")
-orig = cv2.imread('../img/p3.jpg')
+orig = cv2.imread('../img/p'+rand+'.jpg')
 img = orig.copy()
 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
@@ -35,9 +45,7 @@ def overlapping_area(detection_1, detection_2):
 
 
 def nms(detections, threshold=.5):
-    print("DETECTIONS OLD", detections)
     detections = sorted(detections, key=lambda detections: detections[2], reverse=True)
-    print("DETECTIONS NEW", detections)
     new_detections = []
     if len(new_detections) > 0:
         new_detections.append(detections[0])
@@ -45,7 +53,6 @@ def nms(detections, threshold=.5):
 
     for index, detection in enumerate(detections):
         for new_detection in new_detections:
-            print("Overlapping area", overlapping_area(detection, new_detection))
             if overlapping_area(detection, new_detection) > threshold:
                 del detections[index]
                 break
@@ -70,11 +77,11 @@ def locateBoundingBoxes(img):
     count = 0
     sum = 0
     while (h >= 128 and w >= 64):
-        print(img.shape)
+        #print(img.shape)
         h, w = img.shape
         horiz = w - 64
         vert = h - 128
-        print(horiz, vert)
+        #print(horiz, vert)
         i = 0
         while i < vert:
             j = 0
@@ -84,47 +91,44 @@ def locateBoundingBoxes(img):
                 result = clf.predict([features])
                 #print("RESULT", result)
                 if int(result[0]) == 1:
-                    print(result, i, j)
+                    #print(result, i, j)
                     sum +=1
-                    print(sum)
+                    #print(sum)
                     confidence = clf.decision_function([features])
                     appendRects(i, j, confidence, count, rects)
                 j += winStride[1]
             i += winStride[0]
         img = cv2.resize(img, (int(w*inverse), int(h*inverse)), interpolation=cv2.INTER_AREA)
         count += 1
-        print(count)
-    print("This is rects")
-    print(len(rects))
+        #print(count)
     return rects
-
-
-def isDetected(rects):
-    return
 
 
 # Displays the resulting image in a before and after format
 def displayImage(rects, nms_rects):
-    count = 0
+    """
     for (a, b, conf, c, d) in rects:
         cv2.rectangle(orig, (a, b), (a+c, b+d), (0, 255, 0), 2)
 
     print("Before NMS")
     cv2.imshow("Before NMS", orig)
     cv2.waitKey(0)
-
+    """
     for (a, b, conf, c, d) in nms_rects:
         cv2.rectangle(img, (a, b), (a+c, b+d), (0, 255, 0), 2)
-        count += 1
-    print("COUNT", count)
 
     print("After NMS")
-    cv2.imshow("After NMS", img)
-    cv2.waitKey(0)
+    #cv2.imshow("After NMS", img)
+    cv2.imwrite('../ped_images/sample.jpg', img)
 
+    # pedestrian image
+    image = pygame.image.load('../ped_images/sample.jpg').convert()  # or .convert_alpha()
+    # Create a rect with the size of the image.
+    im_rect = image.get_rect(center=(1200 , (main.WINDOW_SIZE[1] / 2) - 200))
+    main.screen.blit(image, im_rect)
+    cv2.waitKey(1000)
+    transparent = (0, 0, 0, 0)
 
-rects = locateBoundingBoxes(gray)
-
-nms_rects = nms(rects, 0.2)
-
-displayImage(rects, nms_rects)
+    image.fill(transparent)
+    pygame.display.flip()
+    #cv2.destroyAllWindows()
